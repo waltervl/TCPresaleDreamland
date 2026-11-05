@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TCPresaleDreamland</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>TCPresaleDreamland</h1>
+    <nav id="tabs">
+      <button data-tab="items" class="active">Items</button>
+      <button data-tab="bom">BOM</button>
+      <button data-tab="reqSpec">Req. Spec</button>
+      <button data-tab="history">History</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <main>
+    <template id="generator-tpl">
+      <section class="card">
+        <div class="row">
+          <label class="grow">Name <input class="g-name" placeholder=""></label>
+          <label class="num">Count <input class="g-count" type="number" min="1" value="3"></label>
+          <label class="num">Temp <input class="g-temp" type="number" min="0" max="2" step="0.1"></label>
+          <label class="num">Max tokens <input class="g-tokens" type="number" min="100" step="100"></label>
+        </div>
+        <div class="row">
+          <button class="primary g-generate">Generate</button>
+          <button class="g-save" disabled>Save to history</button>
+          <button class="g-push" disabled>Push to TC</button>
+          <label class="g-typewrap">Set all types:
+            <select class="g-type"></select>
+          </label>
+        </div>
+        <div class="status g-status"></div>
+        <div class="g-result"></div>
+        <div class="g-links"></div>
+      </section>
+    </template>
+
+    <div id="view"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
