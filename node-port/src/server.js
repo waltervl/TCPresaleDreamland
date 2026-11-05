@@ -7,6 +7,7 @@ const express = require('express');
 
 const store = require('./store');
 const deepseek = require('./deepseek');
+const demo = require('./demo');
 const { login, pushItems, pushTree } = require('./push');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -21,6 +22,7 @@ const wrap = (fn) => (req, res) =>
 
 // ---- settings ----
 app.get('/api/settings', (_req, res) => res.json({ settings: store.getSettings(), defaults: store.defaultSettings() }));
+app.get('/api/demo/catalog', (_req, res) => res.json({ domains: demo.knownDomains(), products: demo.knownProducts() }));
 app.put('/api/settings', (req, res) => res.json(store.saveSettings(req.body)));
 
 app.post('/api/deepseek/verify', wrap(async (_req, res) => {
@@ -54,6 +56,10 @@ app.post('/api/generate/:kind', wrap(async (req, res) => {
   const cfg = settings[req.params.kind];
   const body = req.body || {};
   if (!body.name || !body.count) return res.status(400).json({ error: 'Name and count are required' });
+  if (settings.generator !== 'deepseek') {
+    const generate = { items: demo.demoItems, bom: demo.demoBom, reqSpec: demo.demoReqSpec }[req.params.kind];
+    return res.json({ data: generate(body.name, body.count) });
+  }
   const content = await deepseek.chat({
     apiKey: settings.apiKey,
     prompt: deepseek.fillTemplate(cfg.prompt, kind.build(settings, body)),

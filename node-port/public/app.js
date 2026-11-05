@@ -5,7 +5,7 @@ const view = $('#view');
 const KIND_LABEL = { items: 'Items', bom: 'BOM', reqSpec: 'Requirements Specification' };
 const NAME_HINT = { items: 'Domain (e.g. Automotive)', bom: 'Product (e.g. Turbocharger)', reqSpec: 'Product (e.g. Turbocharger)' };
 
-const state = { settings: null, defaults: null, generators: {} };
+const state = { settings: null, defaults: null, generators: {}, catalog: { domains: [], products: [] } };
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -22,6 +22,7 @@ async function loadSettings() {
   const { settings, defaults } = await api('GET', '/api/settings');
   state.settings = settings;
   state.defaults = defaults;
+  state.catalog = await api('GET', '/api/demo/catalog');
 }
 
 function el(tag, props = {}, ...children) {
@@ -48,7 +49,15 @@ function renderGenerator(kind) {
   const root = document.importNode($('#generator-tpl').content, true);
   const q = (c) => root.querySelector(c);
 
-  q('.g-name').placeholder = NAME_HINT[kind];
+  const demoMode = state.settings.generator !== 'deepseek';
+  const known = kind === 'items' ? state.catalog.domains : state.catalog.products;
+  q('.g-name').placeholder = demoMode ? `e.g. ${known.slice(0, 3).join(', ')}` : NAME_HINT[kind];
+  const countLabel = { items: 'Number of items', bom: 'BOM levels (1-3)', reqSpec: 'Categories (1-5)' }[kind];
+  if (demoMode) {
+    q('.g-count').parentElement.firstChild.textContent = countLabel;
+    q('.g-temp').closest('label').style.display = 'none';
+    q('.g-tokens').closest('label').style.display = 'none';
+  }
   q('.g-name').value = g.name;
   q('.g-count').value = g.count;
   q('.g-temp').value = cfg.temperature;
@@ -313,7 +322,15 @@ function renderSettings() {
 
   view.replaceChildren(
     el('section', { class: 'card' },
-      el('h3', {}, 'DeepSeek'),
+      el('h3', {}, 'Data generator'),
+      (() => {
+        const sel = el('select', {}, el('option', { value: 'demo' }, 'Built-in demo data (offline, no AI)'), el('option', { value: 'deepseek' }, 'DeepSeek AI'));
+        sel.value = s.generator;
+        sel.addEventListener('change', () => { s.generator = sel.value; save().then(renderSettings); });
+        return el('label', {}, 'Source', sel);
+      })(),
+      el('p', { class: 'hint' }, s.generator === 'demo' ? 'Demo mode needs no API key. Try a known name for realistic data; other names get generic data.' : 'DeepSeek mode: enter your API key below.'),
+      el('h3', {}, 'DeepSeek (optional)'),
       el('div', { class: 'row' }, field('API key', 'apiKey', { type: 'password', cls: 'grow' }), action('Verify key', '/api/deepseek/verify')),
       el('h3', {}, 'Teamcenter'),
       el('div', { class: 'row' }, field('Teamcenter URL', 'tcURL', { placeholder: 'http://host:7001/tc', cls: 'grow' }), field('AWC URL', 'awcURL', { placeholder: 'http://host:3000', cls: 'grow' })),

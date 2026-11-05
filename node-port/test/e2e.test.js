@@ -73,7 +73,7 @@ test('generate, push items and BOM against mocks', async () => {
   };
 
   const folder = { uid: 'home1', className: 'Folder', type: 'Fnd0HomeFolder', name: 'Home' };
-  store.saveSettings({ apiKey: 'k', tcURL: `http://127.0.0.1:${tcPort}/tc`, tcUsername: 'u', tcPassword: 'p', items: { folder }, bom: { folder } });
+  store.saveSettings({ generator: 'deepseek', apiKey: 'k', tcURL: `http://127.0.0.1:${tcPort}/tc`, tcUsername: 'u', tcPassword: 'p', items: { folder }, bom: { folder } });
 
   assert.strictEqual((await call('POST', '/api/deepseek/verify')).json.ok, true);
   const v = await call('POST', '/api/teamcenter/verify');
@@ -95,6 +95,24 @@ test('generate, push items and BOM against mocks', async () => {
 
   await call('POST', '/api/history', { kind: 'bom', name: 'Car', data: tree });
   assert.strictEqual((await call('GET', '/api/history')).json.length, 1);
+
+  // built-in demo generator (no AI)
+  store.saveSettings({ generator: 'demo', apiKey: '' });
+  const dItems = (await call('POST', '/api/generate/items', { name: 'medical', count: 4 })).json.data;
+  assert.strictEqual(dItems.length, 4);
+  assert.strictEqual(dItems[0].name, 'Infusion pump');
+  const dBom = (await call('POST', '/api/generate/bom', { name: 'Turbocharger', count: 2 })).json.data;
+  assert.strictEqual(dBom[0].items[0].items.length, 3);
+  assert.strictEqual(dBom[0].items[0].items[0].items.length, 0);
+  const dBom1 = (await call('POST', '/api/generate/bom', { name: 'Turbocharger', count: 1 })).json.data;
+  assert.strictEqual(dBom1[0].items[0].items.length, 0);
+  const dBomX = (await call('POST', '/api/generate/bom', { name: 'My Widget', count: 2 })).json.data;
+  assert.strictEqual(dBomX[0].name, 'My Widget');
+  const dReq = (await call('POST', '/api/generate/reqSpec', { name: 'Pump', count: 2 })).json.data;
+  assert.strictEqual(dReq[0].items.length, 2);
+  assert.ok(dReq[0].items[0].items[0].desc.includes('Pump'));
+  const pushedDemo = (await call('POST', '/api/push/bom', { name: 'Turbo', tree: dBom })).json;
+  assert.ok(pushedDemo.results.length >= 10 && pushedDemo.results.every((r) => r.success));
 
   for (const s of [deepseek, tc, apiServer]) { s.closeAllConnections(); s.close(); }
 });

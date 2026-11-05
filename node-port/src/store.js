@@ -21,6 +21,7 @@ function defaultSettings() {
     types: ['Item'],
   });
   return {
+    generator: 'demo', // 'demo' = built-in data, 'deepseek' = AI
     apiKey: '',
     tcURL: '',
     awcURL: '',
